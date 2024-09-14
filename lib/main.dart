@@ -20,6 +20,9 @@ class TriviaApp extends StatelessWidget {
       title: 'Trivia App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        appBarTheme: AppBarTheme(
+          color: Colors.lightBlueAccent
+        )
       ),
       home: const HomeScreen(),
       debugShowCheckedModeBanner: false,
