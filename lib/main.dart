@@ -40,7 +40,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List _categories = [];
-  String _selectedCategoryId = '';
   bool _isLoadingCategories = true;
   String _categoryErrorMessage = '';
 
@@ -59,7 +58,6 @@ class _HomeScreenState extends State<HomeScreen> {
         final data = json.decode(response.body);
         setState(() {
           _categories = data['trivia_categories'];
-          _selectedCategoryId = _categories[0]['id'].toString(); // Default to first category
           _isLoadingCategories = false;
         });
       } else {
@@ -80,46 +78,30 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trivia Home'),
+        title: const Text('Trivia Categories'),
       ),
       body: Center(
         child: _isLoadingCategories
             ? const CircularProgressIndicator()
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Select a Trivia Category'),
-                  const SizedBox(height: 10),
-                  _categoryErrorMessage.isNotEmpty
-                      ? Text(_categoryErrorMessage)
-                      : DropdownButton<String>(
-                          value: _selectedCategoryId,
-                          items: _categories
-                              .map<DropdownMenuItem<String>>((category) {
-                            return DropdownMenuItem<String>(
-                              value: category['id'].toString(),
-                              child: Text(category['name']),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedCategoryId = newValue!;
-                            });
-                          },
-                        ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    child: const Text('Start Quiz'),
-                    onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        QuizScreen.routeName,
-                        arguments: _selectedCategoryId,
+            : _categoryErrorMessage.isNotEmpty
+                ? Text(_categoryErrorMessage)
+                : ListView.builder(
+                    itemCount: _categories.length,
+                    itemBuilder: (context, index) {
+                      final category = _categories[index];
+                      return ListTile(
+                        title: Text(category['name']),
+                        trailing: const Icon(Icons.arrow_forward),
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            QuizScreen.routeName,
+                            arguments: category['id'].toString(),
+                          );
+                        },
                       );
                     },
                   ),
-                ],
-              ),
       ),
     );
   }
@@ -150,7 +132,7 @@ class _QuizScreenState extends State<QuizScreen> {
     // Access the category ID passed from the HomeScreen.
     if (_categoryId == null) {
       _categoryId = ModalRoute.of(context)!.settings.arguments as String;
-      _fetchQuestions();  // Fetch questions when category is set
+      _fetchQuestions(); // Fetch questions when category is set
     }
   }
 
@@ -166,14 +148,16 @@ class _QuizScreenState extends State<QuizScreen> {
     if (connectivityResult == ConnectivityResult.none) {
       setState(() {
         _hasError = true;
-        _errorMessage = 'No internet connection. Please check your network settings.';
+        _errorMessage =
+            'No internet connection. Please check your network settings.';
         _isLoading = false;
       });
       return;
     }
 
     try {
-      final url = Uri.parse('https://opentdb.com/api.php?amount=5&category=$_categoryId&type=multiple');
+      final url = Uri.parse(
+          'https://opentdb.com/api.php?amount=5&category=$_categoryId&type=multiple');
       final response = await http.get(url).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -185,14 +169,16 @@ class _QuizScreenState extends State<QuizScreen> {
       } else {
         setState(() {
           _hasError = true;
-          _errorMessage = 'Server error: ${response.statusCode}. Please try again later.';
+          _errorMessage =
+              'Server error: ${response.statusCode}. Please try again later.';
           _isLoading = false;
         });
       }
     } on SocketException {
       setState(() {
         _hasError = true;
-        _errorMessage = 'Failed to connect to the server. Please check your internet connection.';
+        _errorMessage =
+            'Failed to connect to the server. Please check your internet connection.';
         _isLoading = false;
       });
     } on TimeoutException {
@@ -204,7 +190,8 @@ class _QuizScreenState extends State<QuizScreen> {
     } catch (error) {
       setState(() {
         _hasError = true;
-        _errorMessage = 'An unexpected error occurred: $error. Please try again.';
+        _errorMessage =
+            'An unexpected error occurred: $error. Please try again.';
         _isLoading = false;
       });
     }
@@ -261,7 +248,8 @@ class _QuizScreenState extends State<QuizScreen> {
                         style: const TextStyle(fontSize: 24),
                       ),
                     ),
-                    ...(_questions[_currentQuestionIndex]['incorrect_answers'] as List<dynamic>)
+                    ...(_questions[_currentQuestionIndex]['incorrect_answers']
+                            as List<dynamic>)
                         .map((answer) {
                       return ElevatedButton(
                         child: Text(answer),
@@ -269,8 +257,10 @@ class _QuizScreenState extends State<QuizScreen> {
                       );
                     }),
                     ElevatedButton(
-                      child: Text(_questions[_currentQuestionIndex]['correct_answer']),
-                      onPressed: () => _answerQuestion(_questions[_currentQuestionIndex]['correct_answer']),
+                      child: Text(
+                          _questions[_currentQuestionIndex]['correct_answer']),
+                      onPressed: () => _answerQuestion(
+                          _questions[_currentQuestionIndex]['correct_answer']),
                     ),
                   ],
                 ),
@@ -306,6 +296,17 @@ class ScoreScreen extends StatelessWidget {
                 Navigator.pushReplacementNamed(context, QuizScreen.routeName);
               },
             ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              child: const Text('Home'),
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  (Route<dynamic> route) => false, // Remove all other routes
+                );
+              },
+            )
           ],
         ),
       ),
