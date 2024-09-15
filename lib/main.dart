@@ -91,7 +91,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       final category = _categories[index];
                       return ListTile(
                         title: Text(category['name']),
-                        trailing: const Icon(Icons.arrow_forward),
                         onTap: () {
                           Navigator.pushNamed(
                             context,
