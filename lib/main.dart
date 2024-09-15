@@ -78,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trivia Categories'),
+        title: const Text('Select Trivia Category'),
       ),
       body: Center(
         child: _isLoadingCategories
@@ -89,15 +89,41 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemCount: _categories.length,
                     itemBuilder: (context, index) {
                       final category = _categories[index];
-                      return ListTile(
-                        title: Text(category['name']),
-                        onTap: () {
-                          Navigator.pushNamed(
-                            context,
-                            QuizScreen.routeName,
-                            arguments: category['id'].toString(),
-                          );
-                        },
+                      return Padding(
+                        padding: const EdgeInsets.only(
+                            bottom: 12.0), // Spac3 between cards
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(15.0), // Rounded corners
+                          ),
+                          elevation: 4.0, // shadow card effect
+                          child: ListTile(
+                            contentPadding:
+                                const EdgeInsets.all(16.0), // Internal padding
+                            leading: Icon(
+                              Icons.category,
+                              color:
+                                  Colors.blueAccent, // Icon for each category
+                              size: 32,
+                            ),
+                            title: Text(
+                              category['name'],
+                              style: const TextStyle(
+                                fontSize: 18.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            tileColor: Colors.blue[50],
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                QuizScreen.routeName,
+                                arguments: category['id'].toString(),
+                              );
+                            },
+                          ),
+                        ),
                       );
                     },
                   ),
