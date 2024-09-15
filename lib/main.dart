@@ -1,6 +1,4 @@
-// main.dart
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -20,9 +18,7 @@ class TriviaApp extends StatelessWidget {
       title: 'Trivia App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        appBarTheme: AppBarTheme(
-          color: Colors.lightBlueAccent
-        )
+        appBarTheme: const AppBarTheme(color: Colors.lightBlueAccent),
       ),
       home: const HomeScreen(),
       debugShowCheckedModeBanner: false,
@@ -35,8 +31,50 @@ class TriviaApp extends StatelessWidget {
 }
 
 // HomeScreen.dart
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  List _categories = [];
+  String _selectedCategoryId = '';
+  bool _isLoadingCategories = true;
+  String _categoryErrorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final url = Uri.parse('https://opentdb.com/api_category.php');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _categories = data['trivia_categories'];
+          _selectedCategoryId = _categories[0]['id'].toString(); // Default to first category
+          _isLoadingCategories = false;
+        });
+      } else {
+        setState(() {
+          _categoryErrorMessage = 'Failed to load categories';
+          _isLoadingCategories = false;
+        });
+      }
+    } catch (error) {
+      setState(() {
+        _categoryErrorMessage = 'An error occurred: $error';
+        _isLoadingCategories = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,12 +83,43 @@ class HomeScreen extends StatelessWidget {
         title: const Text('Trivia Home'),
       ),
       body: Center(
-        child: ElevatedButton(
-          child: const Text('Start Quiz'),
-          onPressed: () {
-            Navigator.pushNamed(context, QuizScreen.routeName);
-          },
-        ),
+        child: _isLoadingCategories
+            ? const CircularProgressIndicator()
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Select a Trivia Category'),
+                  const SizedBox(height: 10),
+                  _categoryErrorMessage.isNotEmpty
+                      ? Text(_categoryErrorMessage)
+                      : DropdownButton<String>(
+                          value: _selectedCategoryId,
+                          items: _categories
+                              .map<DropdownMenuItem<String>>((category) {
+                            return DropdownMenuItem<String>(
+                              value: category['id'].toString(),
+                              child: Text(category['name']),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _selectedCategoryId = newValue!;
+                            });
+                          },
+                        ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    child: const Text('Start Quiz'),
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        QuizScreen.routeName,
+                        arguments: _selectedCategoryId,
+                      );
+                    },
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -72,11 +141,17 @@ class _QuizScreenState extends State<QuizScreen> {
   bool _isLoading = true;
   bool _hasError = false;
   String _errorMessage = '';
+  String? _categoryId;
 
   @override
-  void initState() {
-    super.initState();
-    _fetchQuestions();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Access the category ID passed from the HomeScreen.
+    if (_categoryId == null) {
+      _categoryId = ModalRoute.of(context)!.settings.arguments as String;
+      _fetchQuestions();  // Fetch questions when category is set
+    }
   }
 
   Future<void> _fetchQuestions() async {
@@ -86,7 +161,7 @@ class _QuizScreenState extends State<QuizScreen> {
       _errorMessage = '';
     });
 
-    // First, check for internet connectivity
+    // Check for internet connectivity
     final connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult == ConnectivityResult.none) {
       setState(() {
@@ -98,9 +173,7 @@ class _QuizScreenState extends State<QuizScreen> {
     }
 
     try {
-      final url = Uri.parse('https://opentdb.com/api.php?amount=5&category=9&type=multiple');
-      
-      // Set a 10-second timeout for the request
+      final url = Uri.parse('https://opentdb.com/api.php?amount=5&category=$_categoryId&type=multiple');
       final response = await http.get(url).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -117,21 +190,18 @@ class _QuizScreenState extends State<QuizScreen> {
         });
       }
     } on SocketException {
-      // No Internet connection
       setState(() {
         _hasError = true;
         _errorMessage = 'Failed to connect to the server. Please check your internet connection.';
         _isLoading = false;
       });
     } on TimeoutException {
-      // Request timeout
       setState(() {
         _hasError = true;
         _errorMessage = 'Request timed out. Please try again later.';
         _isLoading = false;
       });
     } catch (error) {
-      // Any other errors
       setState(() {
         _hasError = true;
         _errorMessage = 'An unexpected error occurred: $error. Please try again.';
