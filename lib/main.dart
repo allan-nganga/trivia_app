@@ -143,7 +143,7 @@ class QuizScreen extends StatefulWidget {
 
 class _QuizScreenState extends State<QuizScreen> {
   List _questions = [];
-  List<String> _userAnswers = []; // Track user's answers
+  List<String> _userAnswers = [];
   int _currentQuestionIndex = 0;
   int _score = 0;
   bool _isLoading = true;
@@ -216,7 +216,7 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _answerQuestion(String selectedAnswer) {
-    _userAnswers.add(selectedAnswer); // Store user's answer
+    _userAnswers.add(selectedAnswer);
 
     if (selectedAnswer == _questions[_currentQuestionIndex]['correct_answer']) {
       setState(() {
@@ -229,7 +229,6 @@ class _QuizScreenState extends State<QuizScreen> {
         _currentQuestionIndex++;
       });
     } else {
-      // Pass the questions, user's answers, and score to the ScoreScreen
       Navigator.pushReplacementNamed(
         context,
         ScoreScreen.routeName,
@@ -255,10 +254,14 @@ class _QuizScreenState extends State<QuizScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(_errorMessage),
+                      Text(
+                        _errorMessage,
+                        style: const TextStyle(fontSize: 18, color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
                       const SizedBox(height: 20),
                       ElevatedButton(
-                        onPressed: _fetchQuestions,
+                        onPressed: _fetchQuestions, // Retry fetching questions
                         child: const Text('Retry'),
                       ),
                     ],
